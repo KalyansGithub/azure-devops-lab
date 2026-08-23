@@ -1,0 +1,45 @@
+trigger:
+  - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  azureServiceConnection: 'azure-spn-connection'
+  containerRegistry: 'acrdevlabpyxu6k.azurecr.io'
+  imageRepository: 'flask-app'
+  resourceGroup: 'rg-enterprise-lab-dev'
+  aksCluster: 'aks-dev-eastus-001'
+
+stages:
+- stage: BuildAndDeploy
+  displayName: Build, Push, and Deploy
+  jobs:
+  - job: BuildDeployJob
+    displayName: Build and Deploy Task
+    steps:
+
+    - task: AzureCLI@2
+      displayName: Build and Push Docker Image
+      inputs:
+        azureSubscription: '$(azureServiceConnection)'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          az acr login --name acrdevlabpyxu6k
+          docker build -t $(containerRegistry)/$(imageRepository):$(Build.BuildId) ./app
+          docker tag $(containerRegistry)/$(imageRepository):$(Build.BuildId) $(containerRegistry)/$(imageRepository):latest
+          docker push $(containerRegistry)/$(imageRepository):$(Build.BuildId)
+          docker push $(containerRegistry)/$(imageRepository):latest
+
+    - task: AzureCLI@2
+      displayName: Deploy to AKS
+      inputs:
+        azureSubscription: '$(azureServiceConnection)'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          az aks get-credentials --resource-group $(resourceGroup) --name $(aksCluster) --overwrite-existing
+          sed -i 's|acrdevlabpyxu6k.azurecr.io/flask-app:latest|$(containerRegistry)/$(imageRepository):$(Build.BuildId)|g' k8s/deployment.yaml
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/service.yaml

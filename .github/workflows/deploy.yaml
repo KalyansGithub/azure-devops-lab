@@ -1,0 +1,47 @@
+name: Build and Deploy to AKS
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: '${{ secrets.AZURE_CREDENTIALS }}'
+
+    - name: ACR Login
+      run: |
+        az acr login --name acrdevlabig2se6
+
+    - name: Build and Push Docker Image
+      run: |
+        docker build -t acrdevlabig2se6.azurecr.io/flask-app:${{ github.sha }} ./app
+        docker tag acrdevlabig2se6.azurecr.io/flask-app:${{ github.sha }} acrdevlabig2se6.azurecr.io/flask-app:latest
+        docker push acrdevlabig2se6.azurecr.io/flask-app:${{ github.sha }}
+        docker push acrdevlabig2se6.azurecr.io/flask-app:latest
+
+    - name: Get AKS Credentials
+      run: |
+        az aks get-credentials --resource-group rg-enterprise-lab-dev --name aks-dev-eastus-001 --overwrite-existing
+
+    - name: Update Kubernetes Deployment Image
+      run: |
+        sed -i 's|acrdevlabig2se6.azurecr.io/flask-app:latest|acrdevlabig2se6.azurecr.io/flask-app:${{ github.sha }}|g' k8s/deployment.yaml
+
+    - name: Deploy to AKS
+      run: |
+        kubectl apply -f k8s/deployment.yaml
+        kubectl apply -f k8s/service.yaml

@@ -1,0 +1,19 @@
+# 1. Azure Container Registry (ACR)
+resource "azurerm_container_registry" "acr" {
+  name                = "acrdevlab${random_string.acr_suffix.result}"
+  resource_group_name = azurerm_resource_group.lab_rg.name
+  location            = azurerm_resource_group.lab_rg.location
+  sku                 = "Standard"
+  admin_enabled       = false
+
+  tags = {
+    Environment = "Development"
+    ManagedBy   = "Terraform"
+  }
+}
+
+resource "random_string" "acr_suffix" {
+  length  = 6
+  special = false
+  upper   = false
+}
