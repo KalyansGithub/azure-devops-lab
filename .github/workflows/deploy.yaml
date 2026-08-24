@@ -25,14 +25,14 @@ jobs:
 
     - name: ACR Login
       run: |
-        az acr login --name acrdevlabig2se6
+        az acr login --name acrdevlabzbuw42
 
     - name: Build and Push Docker Image
       run: |
-        docker build -t acrdevlabig2se6.azurecr.io/flask-app:${{ github.sha }} ./app
-        docker tag acrdevlabig2se6.azurecr.io/flask-app:${{ github.sha }} acrdevlabig2se6.azurecr.io/flask-app:latest
-        docker push acrdevlabig2se6.azurecr.io/flask-app:${{ github.sha }}
-        docker push acrdevlabig2se6.azurecr.io/flask-app:latest
+        docker build -t acrdevlabzbuw42.azurecr.io/flask-app:${{ github.sha }} ./app
+        docker tag acrdevlabzbuw42.azurecr.io/flask-app:${{ github.sha }} acrdevlabzbuw42.azurecr.io/flask-app:latest
+        docker push acrdevlabzbuw42.azurecr.io/flask-app:${{ github.sha }}
+        docker push acrdevlabzbuw42.azurecr.io/flask-app:latest
 
     - name: Get AKS Credentials
       run: |
@@ -40,7 +40,7 @@ jobs:
 
     - name: Update Kubernetes Deployment Image
       run: |
-        sed -i 's|acrdevlabig2se6.azurecr.io/flask-app:latest|acrdevlabig2se6.azurecr.io/flask-app:${{ github.sha }}|g' k8s/deployment.yaml
+        sed -i 's|acrdevlabzbuw42.azurecr.io/flask-app:latest|acrdevlabzbuw42.azurecr.io/flask-app:${{ github.sha }}|g' k8s/deployment.yaml
 
     - name: Deploy to AKS
       run: |
