@@ -2,13 +2,20 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: flask-ingress
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   ingressClassName: nginx
+  tls:
+  - hosts:
+    - app.68.220.204.26.nip.io
+    secretName: flask-app-tls
   rules:
-  - http:
+  - host: app.68.220.204.26.nip.io
+    http:
       paths:
-      - path: /
-        pathType: Prefix
+      - pathType: Prefix
+        path: /
         backend:
           service:
             name: flask-service

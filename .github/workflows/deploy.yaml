@@ -1,49 +1,48 @@
-name: Build and Deploy to AKS
+name: Flask App CI/CD Pipeline
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
+#  push:
+#    branches: [ "main" ]
+#    paths:
+#      - 'app/**'
+#      - 'k8s/**'
 
-permissions:
-  id-token: write
-  contents: read
+env:
+  AZURE_CONTAINER_REGISTRY: "akstrenterpriselabacr"   # Update with your ACR name
+  RESOURCE_GROUP: "rg-enterprise-lab-dev"          # Your Azure resource group
+  CLUSTER_NAME: "aks-dev-eastus-001"                 # Your AKS cluster name
+  CONTAINER_NAME: "flask-app"
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
 
     - name: Azure Login
-      uses: azure/login@v1
+      uses: azure/login@v2
       with:
-        creds: '${{ secrets.AZURE_CREDENTIALS }}'
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    - name: ACR Login
-      run: |
-        az acr login --name acrdevlabzbuw42
+    - name: Build and Push to ACR via Azure CLI
+      uses: azure/CLI@v1
+      with:
+        azcliversion: latest
+        inlineScript: |
+          az acr build --registry ${{ env.AZURE_CONTAINER_REGISTRY }} --image ${{ env.CONTAINER_NAME }}:${{ github.sha }} ./app
 
-    - name: Build and Push Docker Image
-      run: |
-        docker build -t acrdevlabzbuw42.azurecr.io/flask-app:${{ github.sha }} ./app
-        docker tag acrdevlabzbuw42.azurecr.io/flask-app:${{ github.sha }} acrdevlabzbuw42.azurecr.io/flask-app:latest
-        docker push acrdevlabzbuw42.azurecr.io/flask-app:${{ github.sha }}
-        docker push acrdevlabzbuw42.azurecr.io/flask-app:latest
+    - name: Set AKS Cluster Context
+      uses: azure/aks-set-context@v5
+      with:
+        resource-group: ${{ env.RESOURCE_GROUP }}
+        cluster-name: ${{ env.CLUSTER_NAME }}
 
-    - name: Get AKS Credentials
+    - name: Deploy Manifests to AKS
       run: |
-        az aks get-credentials --resource-group rg-enterprise-lab-dev --name aks-dev-eastus-001 --overwrite-existing
-
-    - name: Update Kubernetes Deployment Image
-      run: |
-        sed -i 's|acrdevlabzbuw42.azurecr.io/flask-app:latest|acrdevlabzbuw42.azurecr.io/flask-app:${{ github.sha }}|g' k8s/deployment.yaml
-
-    - name: Deploy to AKS
-      run: |
-        kubectl apply -f k8s/deployment.yaml
-        kubectl apply -f k8s/service.yaml
-        kubectl apply -f k8s/ingress.yaml
+        # Dynamically inject the new image tag into your deployment yaml before applying
+        sed -i 's|image:.*|image: ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }}|g' k8s/deployment.yaml
+        
+        kubectl apply -f k8s/
+        kubectl rollout status deployment/flask-deployment
