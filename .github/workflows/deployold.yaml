@@ -40,8 +40,15 @@ jobs:
 
     - name: Update Kubernetes Deployment Image
       run: |
-        sed -i 's|${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/flask-app:latest|${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/flask-app:${{ github.sha }}|g' k8s/deployment.yaml
-    
+        # Use an explicit temporary write or python/awk, or safely inject via standard environment substitution:
+        IMAGE_NAME="${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/flask-app:${{ github.sha }}"
+        
+        # This replaces the image line cleanly regardless of what tag was there previously
+        sed -i 's|image: .*/flask-app:.*|image: '"$IMAGE_NAME"'|g' k8s/deployment.yaml
+        
+        # Print the file to verify it updated correctly during the action run
+        cat k8s/deployment.yaml  
+        
     - name: Install Cert-Manager CRDs
       run: |
         kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.3/cert-manager.yaml
