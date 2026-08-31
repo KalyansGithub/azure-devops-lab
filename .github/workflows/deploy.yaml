@@ -9,7 +9,7 @@ on:
 #      - 'k8s/**'
 
 env:
-  AZURE_CONTAINER_REGISTRY: "akstrenterpriselabacr"   # Update with your ACR name
+  AZURE_CONTAINER_REGISTRY: "acrdevlabnj32xl"   # Update with your ACR name
   RESOURCE_GROUP: "rg-enterprise-lab-dev"          # Your Azure resource group
   CLUSTER_NAME: "aks-dev-eastus-001"                 # Your AKS cluster name
   CONTAINER_NAME: "flask-app"
