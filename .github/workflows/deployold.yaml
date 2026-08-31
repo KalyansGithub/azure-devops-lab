@@ -30,7 +30,7 @@ jobs:
     - name: Build and Push Docker Image
       run: |
         docker build -t ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/flask-app:${{ github.sha }} ./app
-        docker tag ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/flask-app:${{ github.sha }} acrdevlabzbuw42.azurecr.io/flask-app:latest
+        docker tag ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/flask-app:${{ github.sha }} ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/flask-app:latest
         docker push ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/flask-app:${{ github.sha }}
         docker push ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/flask-app:latest
 
