@@ -7,6 +7,9 @@ permissions:
   id-token: write
   contents: read
 
+env:
+  AZURE_CONTAINER_REGISTRY: "acrdevlabnj32xl" 
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -22,14 +25,14 @@ jobs:
 
     - name: ACR Login
       run: |
-        az acr login --name acrdevlabzbuw42
+        az acr login --name ${{ env.AZURE_CONTAINER_REGISTRY }}
 
     - name: Build and Push Docker Image
       run: |
-        docker build -t acrdevlabzbuw42.azurecr.io/flask-app:${{ github.sha }} ./app
-        docker tag acrdevlabzbuw42.azurecr.io/flask-app:${{ github.sha }} acrdevlabzbuw42.azurecr.io/flask-app:latest
-        docker push acrdevlabzbuw42.azurecr.io/flask-app:${{ github.sha }}
-        docker push acrdevlabzbuw42.azurecr.io/flask-app:latest
+        docker build -t ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/flask-app:${{ github.sha }} ./app
+        docker tag ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/flask-app:${{ github.sha }} acrdevlabzbuw42.azurecr.io/flask-app:latest
+        docker push ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/flask-app:${{ github.sha }}
+        docker push ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/flask-app:latest
 
     - name: Get AKS Credentials
       run: |
@@ -37,10 +40,9 @@ jobs:
 
     - name: Update Kubernetes Deployment Image
       run: |
-        sed -i 's|acrdevlabzbuw42.azurecr.io/flask-app:latest|acrdevlabzbuw42.azurecr.io/flask-app:${{ github.sha }}|g' k8s/deployment.yaml
+        sed -i 's|${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/flask-app:latest|${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/flask-app:${{ github.sha }}|g' k8s/deployment.yaml
 
     - name: Deploy to AKS
       run: |
-        kubectl apply -f k8s/deployment.yaml
-        kubectl apply -f k8s/service.yaml
-        kubectl apply -f k8s/ingress.yaml
+        kubectl apply -f k8s/
+        kubectl rollout status deployment/flask-deployment
